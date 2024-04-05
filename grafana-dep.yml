@@ -1,3 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: grafana
+
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -38,7 +45,7 @@ metadata:
   labels:
     app.kubernetes.io/name: grafana
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app.kubernetes.io/name: grafana
   ports:
@@ -46,6 +53,10 @@ spec:
     protocol: TCP
     port: 3000
     targetPort: 3000
+status:
+  loadBalancer:
+    ingress:
+      - ip: 10.0.0.2
 
 ---
 
@@ -63,7 +74,7 @@ spec:
   accessModes:
     - ReadWriteMany
   hostPath:
-    path: "/home/alfred/kub-mnt"
+    path: "/home/$USER/kub-mnt"
 
 ---
 
@@ -79,3 +90,25 @@ spec:
   resources:
     requests:
       storage: 3Gi
+
+---
+
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: grafana-pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 10.0.0.2-10.0.0.199
+
+---
+
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: default
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - grafana-pool
